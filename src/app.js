@@ -26,7 +26,8 @@ app.use(morgan("dev"));
 const dbConnector = require("./config/database");
 
 const routes = require("./routes/routes");
-app.use(`${process.env.API_VERSION}`, routes);
+const checkMacAddress = require("./middlewares/check-mac-address");
+app.use(`${process.env.API_VERSION}`, checkMacAddress, routes);
 
 app.get("/", (req, res) => {
   return res.sendFile(path.join(__dirname, "../index.html"));

@@ -5,7 +5,6 @@ const MongoRepository = require("../repositories/mongodb");
 const sendResponse = require("../utilities/send-response");
 const employeeModel = new MongoRepository(Employee);
 const attendanceModel = new MongoRepository(Attendance);
-const shiftModel = new MongoRepository(Shift);
 const { isNotFound } = require("entity-checker");
 const {
   extractTimeComponents,
@@ -73,7 +72,11 @@ const services = {
             return sendResponse(res, 400, "You cannot request for approval");
           } else {
             if (getEmployee.approval === "Pending") {
-              return sendResponse(res, 400, "Your approval is pending");
+              return sendResponse(
+                res,
+                400,
+                "You already requested for approval. Please wait for HR to approve your request"
+              );
             } else {
               getEmployee.approval = "Pending";
               await getEmployee.save();
@@ -105,7 +108,11 @@ const services = {
         return sendResponse(res, 400, "Invalid device ID");
       } else {
         if (getEmployee.approval === "Pending") {
-          return sendResponse(res, 400, "Your approval is pending");
+          return sendResponse(
+            res,
+            400,
+            "Your approval is pending. Please wait for HR to approve your request"
+          );
         } else {
           const getEmployeeAttendance = await attendanceModel.findOne({
             employee: getEmployee._id,
