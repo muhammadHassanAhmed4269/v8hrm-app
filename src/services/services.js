@@ -79,6 +79,7 @@ const services = {
               );
             } else {
               getEmployee.approval = "Pending";
+              getEmployee.deviceId = deviceId;
               await getEmployee.save();
               return sendResponse(
                 res,
