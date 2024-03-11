@@ -52,7 +52,11 @@ const services = {
             );
           }
         } else {
-          return sendResponse(res, 200, "Email verified successfully");
+          if (getEmployee.deviceId === deviceId) {
+            return sendResponse(res, 200, "Email verified successfully");
+          } else {
+            return sendResponse(res, 400, "Invalid device ID");
+          }
         }
       }
     } catch (error) {
