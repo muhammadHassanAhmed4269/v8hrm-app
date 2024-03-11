@@ -35,30 +35,22 @@ const services = {
 
       const getEmployee = await employeeModel.findOne({ email });
 
-      if (isNotFound(getEmployee)) {
-        return sendResponse(res, 400, "Invalid email");
-      } else {
-        if (isNotFound(getEmployee.deviceId)) {
-          const getBoundDevice = await employeeModel.findOne({ deviceId });
-          if (isNotFound(getBoundDevice)) {
-            getEmployee.deviceId = deviceId;
-            await getEmployee.save();
-            return sendResponse(res, 200, "Email verified successfully");
-          } else {
-            return sendResponse(
-              res,
-              409,
-              "This device is already bound with another email"
-            );
-          }
-        } else {
-          if (getEmployee.deviceId === deviceId) {
-            return sendResponse(res, 200, "Email verified successfully");
-          } else {
-            return sendResponse(res, 400, "Invalid device ID");
-          }
-        }
-      }
+      return isNotFound(getEmployee)
+        ? sendResponse(res, 400, "Invalid email")
+        : isNotFound(getEmployee.deviceId)
+        ? ((getBoundDevice = await employeeModel.findOne({ deviceId })),
+          isNotFound(getBoundDevice)
+            ? ((getEmployee.deviceId = deviceId),
+              await getEmployee.save(),
+              sendResponse(res, 200, "Email verified successfully"))
+            : sendResponse(
+                res,
+                409,
+                "This device is already bound with another email"
+              ))
+        : getEmployee.deviceId === deviceId
+        ? sendResponse(res, 200, "Email verified successfully")
+        : sendResponse(res, 400, "Invalid device ID");
     } catch (error) {
       console.error("Error in verifyEmailAddress", error);
     }
