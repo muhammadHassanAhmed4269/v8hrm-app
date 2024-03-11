@@ -40,7 +40,10 @@ const services = {
         : isNotFound(getEmployee.deviceId)
         ? ((getBoundDevice = await employeeModel.findOne({ deviceId })),
           isNotFound(getBoundDevice)
-            ? ((getEmployee.deviceId = deviceId),
+            ? ((getEmployee.deviceId =
+                deviceId &&
+                (getEmployee.approval === "Approved" ||
+                  isNotFound(getEmployee.approval))),
               await getEmployee.save(),
               sendResponse(res, 200, "Email verified successfully"))
             : sendResponse(
@@ -48,7 +51,9 @@ const services = {
                 409,
                 "This device is already bound with another email"
               ))
-        : getEmployee.deviceId === deviceId
+        : getEmployee.deviceId === deviceId &&
+          (getEmployee.approval === "Approved" ||
+            isNotFound(getEmployee.approval))
         ? sendResponse(res, 200, "Email verified successfully")
         : sendResponse(res, 400, "Invalid device ID");
     } catch (error) {
