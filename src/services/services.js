@@ -18,7 +18,6 @@ const services = {
   getAllEmails: async (req, res) => {
     try {
       const allEmails = await employeeModel.find(null, "email");
-
       return sendResponse(
         res,
         200,
@@ -36,21 +35,19 @@ const services = {
 
       const getEmployee = await employeeModel.findOne({ email });
 
-      if (isNotFound(getEmployee)) {
-        return sendResponse(res, 400, "Invalid employee email");
-      } else {
-        if (isNotFound(getEmployee.deviceId) === true) {
-          getEmployee.deviceId = deviceId;
-          await getEmployee.save();
-          return sendResponse(res, 200, "Email verified successfully");
-        } else {
-          return sendResponse(
+      return isNotFound(getEmployee)
+        ? sendResponse(res, 400, "Invalid employee email")
+        : isNotFound(getEmployee.deviceId)
+        ? ((getEmployee.deviceId = deviceId),
+          await getEmployee.save(),
+          sendResponse(res, 200, "Email verified successfully"))
+        : getEmployee.deviceId === deviceId
+        ? sendResponse(res, 200, "Email verified successfully")
+        : sendResponse(
             res,
             400,
             "Another device is already bind with this email"
           );
-        }
-      }
     } catch (error) {
       console.error("Error in verifyEmailAddress", error);
     }
@@ -62,34 +59,21 @@ const services = {
 
       const getEmployee = await employeeModel.findOne({ email });
 
-      if (isNotFound(getEmployee)) {
-        return sendResponse(res, 400, "Invalid employee email");
-      } else {
-        if (isNotFound(getEmployee.deviceId) === true) {
-          return sendResponse(res, 400, "You cannot request for approval");
-        } else {
-          if (getEmployee.deviceId === deviceId) {
-            return sendResponse(res, 400, "You cannot request for approval");
-          } else {
-            if (getEmployee.approval === "Pending") {
-              return sendResponse(
-                res,
-                400,
-                "You already requested for approval. Please wait for HR to approve your request"
-              );
-            } else {
-              getEmployee.approval = "Pending";
-              getEmployee.deviceId = deviceId;
-              await getEmployee.save();
-              return sendResponse(
-                res,
-                200,
-                "Your approval request has been sent to HR"
-              );
-            }
-          }
-        }
-      }
+      return isNotFound(getEmployee)
+        ? sendResponse(res, 400, "Invalid employee email")
+        : isNotFound(getEmployee.deviceId)
+        ? sendResponse(res, 400, "You cannot request for approval")
+        : getEmployee.deviceId === deviceId &&
+          getEmployee.approval === "Pending"
+        ? sendResponse(
+            res,
+            409,
+            "You already requested for approval. Please wait for HR to approve your request"
+          )
+        : ((getEmployee.approval = "Pending"),
+          (getEmployee.deviceId = deviceId),
+          await getEmployee.save(),
+          sendResponse(res, 200, "Your approval request has been sent to HR"));
     } catch (error) {
       console.error("Error in sendRequestForApproval", error);
     }
@@ -105,49 +89,28 @@ const services = {
         "shift"
       );
 
-      if (isNotFound(getEmployee)) {
-        return sendResponse(res, 400, "Invalid device ID");
-      } else {
-        if (getEmployee.approval === "Pending") {
-          return sendResponse(
+      return isNotFound(getEmployee)
+        ? sendResponse(res, 400, "Invalid device ID")
+        : getEmployee.approval === "Pending"
+        ? sendResponse(
             res,
             400,
             "Your approval is pending. Please wait for HR to approve your request"
-          );
-        } else {
-          const getEmployeeAttendance = await attendanceModel.findOne({
+          )
+        : ((getEmployeeAttendance = await attendanceModel.findOne({
             employee: getEmployee._id,
-          });
-
-          if (isNotFound(getEmployeeAttendance)) {
-            await createFirstCheckIn(getEmployee, getEmployee.shift);
-
-            return sendResponse(
-              res,
-              200,
-              "You have been successfully checked in"
-            );
-          }
-
-          if (getEmployeeAttendance.status === "Checked In") {
-            await updateLastCheckIn(getEmployeeAttendance, getEmployee.shift);
-
-            return sendResponse(
-              res,
-              200,
-              "You have been successfully checked out"
-            );
-          }
-
-          await addNewCheckIn(getEmployeeAttendance, getEmployee.shift);
-
-          return sendResponse(
-            res,
-            200,
-            "You have been successfully checked in"
-          );
-        }
-      }
+          })),
+          isNotFound(getEmployeeAttendance)
+            ? (await createFirstCheckIn(getEmployee, getEmployee.shift),
+              sendResponse(res, 200, "You have been successfully checked in"))
+            : getEmployeeAttendance.status === "Checked In"
+            ? (await updateLastCheckIn(
+                getEmployeeAttendance,
+                getEmployee.shift
+              ),
+              sendResponse(res, 200, "You have been successfully checked out"))
+            : (await addNewCheckIn(getEmployeeAttendance, getEmployee.shift),
+              sendResponse(res, 200, "You have been successfully checked in")));
     } catch (error) {
       console.error("Error in checkInAndCheckOut", error);
     }
@@ -228,15 +191,13 @@ function checkInTime(startTime, timeIn) {
     timeInAMPM
   );
 
-  if (minutesDifference > 30) {
-    return "Late";
-  } else if (minutesDifference < -30) {
-    return "Early";
-  } else if (minutesDifference >= -30 && minutesDifference <= 30) {
-    return "On Time";
-  } else {
-    return "Leave";
-  }
+  return minutesDifference > 30
+    ? "Late"
+    : minutesDifference < -30
+    ? "Early"
+    : minutesDifference >= -30 && minutesDifference <= 30
+    ? "On Time"
+    : "Leave";
 }
 
 function checkOutTime(endTime, timeOut) {
@@ -253,13 +214,9 @@ function checkOutTime(endTime, timeOut) {
     timeOutAMPM
   );
 
-  const THIRTY_MINUTES = 30;
-
-  if (minutesDifference > THIRTY_MINUTES) {
-    return "Overtime";
-  } else if (minutesDifference < -THIRTY_MINUTES) {
-    return "Early";
-  } else {
-    return "On Time";
-  }
+  return minutesDifference > 30
+    ? "Overtime"
+    : minutesDifference < -30
+    ? "Early"
+    : "On Time";
 }
