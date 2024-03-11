@@ -35,20 +35,26 @@ const services = {
 
       const getEmployee = await employeeModel.findOne({ email });
 
-      return isNotFound(getEmployee)
-        ? sendResponse(res, 400, "Invalid employee email")
-        : isNotFound(getEmployee.deviceId)
-        ? ((getEmployee.deviceId = deviceId),
-          await getEmployee.save(),
-          sendResponse(res, 200, "Email verified successfully"))
-        : getEmployee.deviceId === deviceId &&
-          getEmployee.approval === "Approved"
-        ? sendResponse(res, 200, "Email verified successfully")
-        : sendResponse(
-            res,
-            400,
-            "Another device is already bind with this email"
-          );
+      if (isNotFound(getEmployee)) {
+        return sendResponse(res, 400, "Invalid email");
+      } else {
+        if (isNotFound(getEmployee.deviceId)) {
+          const getBoundDevice = await employeeModel.findOne({ deviceId });
+          if (isNotFound(getBoundDevice)) {
+            getEmployee.deviceId = deviceId;
+            await getEmployee.save();
+            return sendResponse(res, 200, "Email verified successfully");
+          } else {
+            return sendResponse(
+              res,
+              409,
+              "This device is already bound with another email"
+            );
+          }
+        } else {
+          return sendResponse(res, 200, "Email verified successfully");
+        }
+      }
     } catch (error) {
       console.error("Error in verifyEmailAddress", error);
     }
