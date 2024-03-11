@@ -41,7 +41,8 @@ const services = {
         ? ((getEmployee.deviceId = deviceId),
           await getEmployee.save(),
           sendResponse(res, 200, "Email verified successfully"))
-        : getEmployee.deviceId === deviceId
+        : getEmployee.deviceId === deviceId &&
+          getEmployee.approval === "Approved"
         ? sendResponse(res, 200, "Email verified successfully")
         : sendResponse(
             res,
