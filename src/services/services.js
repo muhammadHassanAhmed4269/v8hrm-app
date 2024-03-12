@@ -57,6 +57,10 @@ const services = {
             400,
             "Your device is already bound with another email"
           );
+        } else if (isNotFound(checkDevice)) {
+          user.deviceId = deviceId;
+          await user.save();
+          return sendResponse(res, 200, "Email verified successfully");
         } else {
           return sendResponse(res, 400, "Invalid device ID");
         }
