@@ -65,7 +65,11 @@ const services = {
           return sendResponse(res, 400, "Invalid device ID");
         }
       } else {
-        return sendResponse(res, 400, "Invalid device ID");
+        if (user.deviceId === deviceId) {
+          return sendResponse(res, 200, "Email verified successfully");
+        } else {
+          return sendResponse(res, 400, "Invalid device ID");
+        }
       }
     } catch (error) {
       console.error("Error in verifyEmailAddress", error);
