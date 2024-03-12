@@ -33,29 +33,50 @@ const services = {
     try {
       const { email, deviceId } = req.body;
 
+      // Find employee by email
       const getEmployee = await employeeModel.findOne({ email });
 
-      return isNotFound(getEmployee)
-        ? sendResponse(res, 400, "Invalid email")
-        : isNotFound(getEmployee.deviceId)
-        ? ((getBoundDevice = await employeeModel.findOne({ deviceId })),
-          isNotFound(getBoundDevice)
-            ? ((getEmployee.deviceId =
-                deviceId &&
-                (getEmployee.approval === "Approved" ||
-                  isNotFound(getEmployee.approval))),
-              await getEmployee.save(),
-              sendResponse(res, 200, "Email verified successfully"))
-            : sendResponse(
-                res,
-                409,
-                "This device is already bound with another email"
-              ))
-        : getEmployee.deviceId === deviceId &&
-          (getEmployee.approval === "Approved" ||
-            isNotFound(getEmployee.approval))
-        ? sendResponse(res, 200, "Email verified successfully")
-        : sendResponse(res, 400, "Invalid device ID");
+      // If employee not found, return error
+      if (isNotFound(getEmployee)) {
+        return sendResponse(res, 400, "Invalid email");
+      }
+
+      // If employee has a deviceId
+      if (getEmployee.deviceId) {
+        // Check if the deviceId is bound to another email
+        const getBoundDevice = await employeeModel.findOne({ deviceId });
+        if (getBoundDevice && getBoundDevice.email !== email) {
+          return sendResponse(
+            res,
+            409,
+            "This device is already bound with another email"
+          );
+        }
+
+        // Update employee's deviceId and verify email
+        getEmployee.deviceId = deviceId;
+        if (
+          getEmployee.approval === "Approved" ||
+          isNotFound(getEmployee.approval)
+        ) {
+          await getEmployee.save();
+          return sendResponse(res, 200, "Email verified successfully");
+        } else {
+          return sendResponse(res, 400, "Approval pending for this email");
+        }
+      } else {
+        // If employee does not have a deviceId, update it and verify email
+        getEmployee.deviceId = deviceId;
+        if (
+          getEmployee.approval === "Approved" ||
+          isNotFound(getEmployee.approval)
+        ) {
+          await getEmployee.save();
+          return sendResponse(res, 200, "Email verified successfully");
+        } else {
+          return sendResponse(res, 400, "Approval pending for this email");
+        }
+      }
     } catch (error) {
       console.error("Error in verifyEmailAddress", error);
     }
