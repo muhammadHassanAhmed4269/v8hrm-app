@@ -57,6 +57,16 @@ const services = {
             400,
             "Your device is already bound with another email"
           );
+        } else if (
+          checkDevice.deviceId === deviceId &&
+          checkDevice.email === email &&
+          checkDevice.approval === "Pending"
+        ) {
+          return sendResponse(
+            res,
+            400,
+            "Your request is pending. Wait for HR to approve your request"
+          );
         } else if (isNotFound(checkDevice)) {
           user.deviceId = deviceId;
           await user.save();
