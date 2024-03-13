@@ -42,37 +42,35 @@ const services = {
       if (isNotFound(user.deviceId)) {
         const checkDevice = await employeeModel.findOne({ deviceId });
 
-        if (
-          checkDevice &&
-          checkDevice.email === email &&
-          (isNotFound(checkDevice.approval) ||
-            checkDevice.approval === "Approved")
-        ) {
-          user.deviceId = deviceId;
-          await user.save();
-          return sendResponse(res, 200, "Email verified successfully");
-        } else if (checkDevice && checkDevice.email !== email) {
-          return sendResponse(
-            res,
-            400,
-            "Your device is already bound with another email"
-          );
-        } else if (
-          checkDevice.deviceId === deviceId &&
-          checkDevice.email === email &&
-          checkDevice.approval === "Pending"
-        ) {
-          return sendResponse(
-            res,
-            400,
-            "Your request is pending. Wait for HR to approve your request"
-          );
-        } else if (isNotFound(checkDevice)) {
-          user.deviceId = deviceId;
-          await user.save();
-          return sendResponse(res, 200, "Email verified successfully");
+        if (checkDevice) {
+          if (checkDevice.email === email) {
+            if (
+              checkDevice.approval === "Approved" ||
+              isNotFound(checkDevice.approval)
+            ) {
+              user.deviceId = deviceId;
+              await user.save();
+              return sendResponse(res, 200, "Email verified successfully");
+            } else if (checkDevice.approval === "Pending") {
+              return sendResponse(
+                res,
+                400,
+                "Your request is pending. Wait for HR to approve your request"
+              );
+            } else {
+              return sendResponse(res, 400, "Invalid device ID");
+            }
+          } else {
+            return sendResponse(
+              res,
+              400,
+              "Your device is already bound with another email"
+            );
+          }
         } else {
-          return sendResponse(res, 400, "Invalid device ID");
+          user.deviceId = deviceId;
+          await user.save();
+          return sendResponse(res, 200, "Email verified successfully");
         }
       } else {
         if (user.deviceId === deviceId) {
@@ -85,7 +83,6 @@ const services = {
       console.error("Error in verifyEmailAddress", error);
     }
   },
-
   sendRequestForApproval: async (req, res) => {
     try {
       const { email, deviceId } = req.body;
