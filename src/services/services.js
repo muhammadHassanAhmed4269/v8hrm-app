@@ -39,50 +39,43 @@ const services = {
         return sendResponse(res, 400, "Invalid email");
       }
 
-      if (isNotFound(user.deviceId)) {
-        const checkDevice = await employeeModel.findOne({ deviceId });
+      const myDevice = await employeeModel.findOne({ email, deviceId });
 
-        if (checkDevice) {
-          if (checkDevice.email === email) {
-            if (
-              checkDevice.approval === "Approved" ||
-              isNotFound(checkDevice.approval)
-            ) {
-              user.deviceId = deviceId;
-              await user.save();
-              return sendResponse(res, 200, "Email verified successfully");
-            } else if (checkDevice.approval === "Pending") {
-              return sendResponse(
-                res,
-                400,
-                "Your request is pending. Wait for HR to approve your request"
-              );
-            } else {
-              return sendResponse(res, 400, "Invalid device ID");
-            }
-          } else {
-            return sendResponse(
-              res,
-              400,
-              "Your device is already bound with another email"
-            );
-          }
+      if (myDevice) {
+        if (myDevice.approval === "Pending") {
+          return sendResponse(
+            res,
+            400,
+            "Your approval is pending. Please wait for HR to approve your request"
+          );
+        } else {
+          return sendResponse(res, 200, "Email verified successfully");
+        }
+      }
+
+      const existingDeviceUser = await employeeModel.findOne({ deviceId });
+
+      if (isNotFound(existingDeviceUser)) {
+        if (!isNotFound(user.deviceId)) {
+          return sendResponse(res, 400, "Invalid device id");
         } else {
           user.deviceId = deviceId;
           await user.save();
           return sendResponse(res, 200, "Email verified successfully");
         }
       } else {
-        if (user.deviceId === deviceId) {
-          return sendResponse(res, 200, "Email verified successfully");
-        } else {
-          return sendResponse(res, 400, "Invalid device ID");
-        }
+        return sendResponse(
+          res,
+          409,
+          "This device is already bound with another email"
+        );
       }
     } catch (error) {
       console.error("Error in verifyEmailAddress", error);
+      return sendResponse(res, 500, "Internal Server Error");
     }
   },
+
   sendRequestForApproval: async (req, res) => {
     try {
       const { email, deviceId } = req.body;
